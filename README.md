@@ -16,6 +16,51 @@ Você deve entregar uma Skill capaz de:
 
 A skill deve ser agnóstica de tecnologia, funcionando com diferentes linguagens e frameworks.
 
+## Análise Manual
+
+Antes de construir a skill, os três projetos-alvo foram lidos manualmente para levantar os
+problemas reais que a skill precisaria detectar. Os achados abaixo usam referências exatas de
+arquivo:linha e seguem a escala de severidade definida na seção "Contexto".
+
+### Projeto 1 — code-smells-project (Python/Flask)
+
+| Severidade | Problema | Local | Por que importa |
+|---|---|---|---|
+| CRITICAL | SQL Injection generalizada — queries montadas por concatenação de string | `models.py` (ex.: 28, 47-50, 110, 289-297) | Permite bypass de login e leitura/alteração/exclusão arbitrária de dados |
+| CRITICAL | `SECRET_KEY` hardcoded e devolvida em `/health` | `app.py:7`, `controllers.py:289` | Qualquer cliente da API consegue ler a chave e forjar sessões |
+| CRITICAL | Endpoints `/admin/reset-db` e `/admin/query` sem autenticação | `app.py:47-78` | Qualquer visitante apaga o banco inteiro ou roda SQL arbitrário |
+| HIGH | Estado global mutável de conexão (`global db_connection`) | `database.py:4-10` | Condição de corrida sob concorrência; acoplamento implícito entre requests |
+| MEDIUM | N+1 queries ao montar pedidos com itens | `models.py:171-233` | Uma query por pedido + uma por item — degradação linear de performance |
+| MEDIUM | "Notificações" fake via `print()` tratadas como se tivessem ocorrido | `controllers.py:208-210` | Cria falsa sensação de funcionalidade completa (nenhum e-mail/SMS é enviado) |
+| LOW | `print()` como logging em todo o projeto | `controllers.py` (~14 pontos) | Sem níveis, destino configurável ou correlação |
+| LOW | `str(exception)` devolvido ao cliente em todo handler | `controllers.py` (~16 pontos) | Vaza detalhes internos (caminho de arquivo, nome de tabela) |
+
+### Projeto 2 — ecommerce-api-legacy (Node.js/Express, LMS + checkout)
+
+| Severidade | Problema | Local | Por que importa |
+|---|---|---|---|
+| CRITICAL | Credenciais e segredos hardcoded, incluindo chave de gateway de pagamento | `src/utils.js:2-4` | Vazamento do repositório compromete banco de produção e conta de pagamento |
+| CRITICAL | Número de cartão completo e chave de pagamento impressos em log | `src/AppManager.js:45` | PCI: dado de cartão sensível parando em log/console, sem mascaramento |
+| CRITICAL | "Hash" de senha falso — apenas Base64 repetido, totalmente reversível | `src/utils.js:17-23` (`badCrypto`) | Equivale a senha em texto puro; qualquer um decodifica o Base64 |
+| HIGH | God Class — uma única classe mistura rotas, SQL, regra de negócio de pagamento/matrícula e relatório admin | `src/AppManager.js:1-141` | Impossível testar isoladamente; qualquer mudança arrisca quebrar checkout inteiro |
+| MEDIUM | N+1 queries com callbacks aninhados no relatório financeiro | `src/AppManager.js:80-129` | Para cada curso → query de matrículas; para cada matrícula → 2 queries — cresce exponencialmente com os dados |
+| MEDIUM | Deleção sem integridade referencial (a própria API admite) | `src/AppManager.js:131-137` | `DELETE /api/users/:id` deixa matrículas e pagamentos órfãos — resposta literalmente diz "ficaram sujos no banco" |
+| LOW | `console.log` como logging | `src/utils.js:13`, `src/AppManager.js:45` | Sem nível, sem estrutura, mistura dado sensível no log |
+| LOW | Nomenclatura ruim (`u`, `e`, `p`, `cid`, `cc`) | `src/AppManager.js:29-33` | Dificulta leitura e revisão do fluxo de checkout |
+
+### Projeto 3 — task-manager-api (Python/Flask, já com camadas parciais)
+
+| Severidade | Problema | Local | Por que importa |
+|---|---|---|---|
+| CRITICAL | Hash de senha com MD5 sem salt, e o próprio hash é devolvido pela API | `models/user.py:29,32,21` | MD5 é quebrável por força bruta/rainbow table; expor o hash piora ainda mais |
+| CRITICAL | Token de autenticação fake e previsível (`"fake-jwt-token-" + user.id`) | `routes/user_routes.py:210` | Qualquer cliente forja o token de qualquer usuário só trocando o ID — bypass total de auth |
+| CRITICAL | Credenciais hardcoded (`SECRET_KEY`, usuário/senha SMTP) | `app.py:13`, `services/notification_service.py:9-10` | Vazamento do repo compromete sessões e a conta de e-mail do serviço |
+| HIGH | Lógica de negócio (cálculo de atraso, validação de status/prioridade) duplicada nas rotas em vez de reaproveitar o Model | `routes/task_routes.py:30-39,71-80,283-287`, `routes/report_routes.py:33-37,132-135` vs. `models/task.py:38-60` (já existe `is_overdue()`/`validate_status()` prontos e ignorados) | Mesmo tendo camadas separadas, a regra vaza e diverge — exatamente o smell de "MVC parcial" |
+| MEDIUM | N+1 queries no relatório de produtividade por usuário | `routes/report_routes.py:53-68` | Uma query de tasks por usuário dentro de um loop |
+| MEDIUM | `except:` genérico (bare) mascarando erros reais em vários endpoints | `routes/task_routes.py:62,236`, `routes/user_routes.py:130`, `routes/report_routes.py:186,207,221` | Engole qualquer exceção (inclusive bugs de programação) sem logar nada |
+| LOW | `print()` como logging espalhado pelas rotas | `routes/task_routes.py:149,153,219,234`, `routes/user_routes.py:83,89,147` | Sem correlação, sem nível, inutilizável em produção |
+| LOW | Magic strings de status/prioridade repetidas sem constante central | `routes/task_routes.py`, `models/task.py`, `utils/helpers.py` | `'pending'/'done'/...` e faixas `1-5` espalhadas — mudar a regra exige caçar todas as ocorrências |
+
 ## Contexto
 
 ### Definição de Severidades
