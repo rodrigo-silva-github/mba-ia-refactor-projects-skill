@@ -140,11 +140,23 @@ src/
 ### Validation
 - ✓ Todos os `require`/`module.exports` foram conferidos manualmente (caminho relativo e nome
   exportado) — a árvore de imports resolve sem referências quebradas.
-- ✗ Boot real (`npm start`) e chamadas HTTP end-to-end **não puderam ser executados neste
-  ambiente**: não há `node`/`npm` instalado no sandbox (verificado — nenhum binário `node` no
-  PATH nem `node_modules` presente). A validação de comportamento em runtime deve ser feita pelo
-  usuário com `npm install && npm start` antes de considerar a migração encerrada.
-- ✓ Todos os anti-patterns CRITICAL/HIGH do relatório foram eliminados na revisão estática do
-  código (God Class dissolvida em Models/Controllers/Views; endpoints admin agora exigem
-  `x-admin-key`; segredos migrados para env vars; hash de senha real via `crypto.scrypt`; lógica
-  de checkout movida para controller; estado global mutável removido).
+- ✓ Boot real (`npm start`) validado após instalar Node.js 22.14.0 no sandbox (ausente
+  inicialmente) e rodar `npm install`. A aplicação sobe sem erros:
+  `Frankenstein LMS rodando na porta 3000...`.
+- ✓ Endpoints originais testados via `curl`, preservando os contratos esperados:
+  - `POST /api/checkout`: sucesso com usuário novo e com usuário já existente (mesmo
+    `{msg, enrollment_id}`); cartão recusado (`"Pagamento recusado"`); payload incompleto → 400;
+    curso inexistente → 404 — todos idênticos ao comportamento original.
+  - `GET /api/admin/financial-report` e `DELETE /api/users/:id`: 401 sem `x-admin-key`, 200 com
+    o header — CRITICAL de endpoint administrativo sem autenticação confirmado corrigido em
+    runtime.
+  - Relatório financeiro consultado após uma exclusão de usuário: sem registros órfãos, sem
+    crash, revenue/students corretos via a query com `JOIN` único — MEDIUM (integridade
+    referencial) e MEDIUM (N+1) confirmados corrigidos em runtime.
+  - Logs do processo inspecionados durante o checkout: nenhum número de cartão ou
+    `paymentGatewayKey` impresso — CRITICAL de dado sensível em log confirmado corrigido.
+- ✓ Todos os anti-patterns CRITICAL/HIGH do relatório foram eliminados e confirmados tanto na
+  revisão estática do código quanto em execução real (God Class dissolvida em
+  Models/Controllers/Views; endpoints admin agora exigem `x-admin-key`; segredos migrados para
+  env vars; hash de senha real via `crypto.scrypt`; lógica de checkout movida para controller;
+  estado global mutável removido).
