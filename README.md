@@ -52,14 +52,16 @@ arquivo:linha e seguem a escala de severidade definida na seção "Contexto".
 
 | Severidade | Problema | Local | Por que importa |
 |---|---|---|---|
-| CRITICAL | Hash de senha com MD5 sem salt, e o próprio hash é devolvido pela API | `models/user.py:29,32,21` | MD5 é quebrável por força bruta/rainbow table; expor o hash piora ainda mais |
-| CRITICAL | Token de autenticação fake e previsível (`"fake-jwt-token-" + user.id`) | `routes/user_routes.py:210` | Qualquer cliente forja o token de qualquer usuário só trocando o ID — bypass total de auth |
-| CRITICAL | Credenciais hardcoded (`SECRET_KEY`, usuário/senha SMTP) | `app.py:13`, `services/notification_service.py:9-10` | Vazamento do repo compromete sessões e a conta de e-mail do serviço |
-| HIGH | Lógica de negócio (cálculo de atraso, validação de status/prioridade) duplicada nas rotas em vez de reaproveitar o Model | `routes/task_routes.py:30-39,71-80,283-287`, `routes/report_routes.py:33-37,132-135` vs. `models/task.py:38-60` (já existe `is_overdue()`/`validate_status()` prontos e ignorados) | Mesmo tendo camadas separadas, a regra vaza e diverge — exatamente o smell de "MVC parcial" |
-| MEDIUM | N+1 queries no relatório de produtividade por usuário | `routes/report_routes.py:53-68` | Uma query de tasks por usuário dentro de um loop |
-| MEDIUM | `except:` genérico (bare) mascarando erros reais em vários endpoints | `routes/task_routes.py:62,236`, `routes/user_routes.py:130`, `routes/report_routes.py:186,207,221` | Engole qualquer exceção (inclusive bugs de programação) sem logar nada |
-| LOW | `print()` como logging espalhado pelas rotas | `routes/task_routes.py:149,153,219,234`, `routes/user_routes.py:83,89,147` | Sem correlação, sem nível, inutilizável em produção |
-| LOW | Magic strings de status/prioridade repetidas sem constante central | `routes/task_routes.py`, `models/task.py`, `utils/helpers.py` | `'pending'/'done'/...` e faixas `1-5` espalhadas — mudar a regra exige caçar todas as ocorrências |
+| CRITICAL | Nenhuma rota exige autenticação — `/login` emite um token fake e previsível (`"fake-jwt-token-" + user.id`) que nunca é verificado em lugar nenhum do código | `routes/user_routes.py:92-151,210` (padrão repetido em todas as rotas de tasks/categorias) | Qualquer visitante não autenticado promove um usuário a admin ou apaga qualquer conta/task — equivale a não ter controle de acesso algum |
+| CRITICAL | Hash de senha com MD5 sem salt, e o próprio hash é devolvido pela API | `models/user.py:27-32,21` | MD5 é quebrável por força bruta/rainbow table; expor o hash piora ainda mais |
+| CRITICAL | Credenciais hardcoded (`SECRET_KEY`, usuário/senha SMTP) | `app.py:13`, `services/notification_service.py:7-10` | Vazamento do repo compromete sessões e a conta de e-mail do serviço |
+| HIGH | Lógica de negócio (cálculo de atraso, validação de status/prioridade) duplicada nas rotas em vez de reaproveitar o Model | `routes/task_routes.py:30-39,71-80,92-154,166-223` vs. `models/task.py:38-60` (já existe `is_overdue()`/`validate_status()` prontos e ignorados) | Mesmo tendo camadas separadas, a regra vaza e diverge — exatamente o smell de "MVC parcial" |
+| HIGH | Agregação inteira dos relatórios (`summary_report`/`user_report`) feita na rota, com loops manuais em vez de uma camada de serviço | `routes/report_routes.py:12-155` | Regra de negócio de reporting fica impossível de testar isolada e reaproveitar fora do HTTP |
+| MEDIUM | N+1 queries na listagem de tasks e no relatório de produtividade por usuário | `routes/task_routes.py:41-57`, `routes/report_routes.py:53-68,157-165` | Uma query extra por task/usuário/categoria dentro de um loop — degradação linear de performance |
+| MEDIUM | `NotificationService` implementado com envio real de e-mail, mas nunca importado/chamado por nenhuma rota | `services/notification_service.py:1-49` | Dead code que passa a falsa impressão de que a notificação de tasks já funciona |
+| MEDIUM | `update_category` não valida payload vazio antes de acessar `data['name']`, diferente das demais rotas | `routes/report_routes.py:196-197` | Corpo vazio/`Content-Type` errado gera 500 genérico em vez do 400 consistente do resto da API |
+| LOW | `print()` como logging e `except:` genérico (bare) espalhados pelas rotas | `routes/task_routes.py:62,149,153,219,234,237`, `routes/user_routes.py:83,89,130,147,149`, `routes/report_routes.py:186,207,222` | Sem correlação, sem nível, e engole qualquer exceção sem logar nada — inutilizável em produção |
+| LOW | Magic strings de status/role repetidas sem usar as constantes já definidas (e nunca importadas) | `routes/task_routes.py`, `routes/user_routes.py` vs. `utils/helpers.py:110-111` (`VALID_STATUSES`/`VALID_ROLES`) | `'pending'/'done'/...` espalhadas — mudar a regra exige caçar todas as ocorrências |
 
 ## Contexto
 
