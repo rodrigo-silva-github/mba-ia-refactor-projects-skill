@@ -35,17 +35,14 @@ class Task(db.Model):
         data['tags'] = self.tags.split(',') if self.tags else []
         return data
 
-    def validate_status(self, new_status):
+    @staticmethod
+    def validate_status(new_status):
         valid = ['pending', 'in_progress', 'done', 'cancelled']
-        if new_status in valid:
-            return True
-        else:
-            return False
+        return new_status in valid
 
-    def validate_priority(self, p):
-        if p >= 1 and p <= 5:
-            return True
-        return False
+    @staticmethod
+    def validate_priority(p):
+        return p >= 1 and p <= 5
 
     def is_overdue(self):
         if self.due_date:
