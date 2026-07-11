@@ -115,6 +115,11 @@ Description: `marshmallow`, `requests` e `python-dotenv` estão no manifesto de 
 Impact: Superfície de dependências maior que o necessário (mais CVEs em potencial a monitorar) e confusão sobre o que o projeto realmente usa — `marshmallow` em particular sugere que a validação deveria ter sido feita com schemas, não inline nas rotas.
 Recommendation: Remover as dependências não usadas do requirements.txt, ou efetivamente adotá-las (ex.: `marshmallow` para as validações hoje manuais).
 
+## Deprecated APIs
+
+- `datetime.utcnow()` está deprecated desde Python 3.12 em favor de `datetime.now(timezone.utc)` — usado em `models/task.py:15-16,49`, `models/user.py:14`, `models/category.py:11`, `routes/report_routes.py` e `services/notification_service.py:35`. Retorna um datetime naive (sem timezone), que é a própria causa do aviso de depreciação.
+- `Model.query.get(id)` (API legada do Flask-SQLAlchemy) está deprecated desde SQLAlchemy 1.4/2.0 em favor de `db.session.get(Model, id)` — usado em ~13 pontos entre `routes/task_routes.py`, `routes/user_routes.py` e `routes/report_routes.py`. Continua funcional em Flask-SQLAlchemy 3.1.1, mas emite `LegacyAPIWarning`.
+
 ================================
 Total: 17 findings
 ================================
@@ -125,3 +130,5 @@ Phase 2 complete. Proceed with refactoring (Phase 3)? [y/n]
 ## Status
 
 Aprovado pelo usuário em 2026-07-11. Fase 3 (refatoração) executada em seguida — ver commit da refatoração para o detalhamento do que foi corrigido.
+
+Nota: os dois itens de "Deprecated APIs" (`datetime.utcnow()` e `Model.query.get()`) não faziam parte dos achados CRITICAL/HIGH priorizados na Fase 3 e permanecem no código refatorado — registrados aqui como follow-up, não bloqueiam o funcionamento da aplicação.

@@ -1,0 +1,14 @@
+ * Serving Flask app 'app'
+ * Debug mode: off
+2026-07-11 20:21:57,469 INFO werkzeug [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-07-11 20:21:57,469 INFO werkzeug [33mPress CTRL+C to quit[0m
+2026-07-11 20:22:11,788 INFO werkzeug 127.0.0.1 - - [11/Jul/2026 20:22:11] "GET /health HTTP/1.1" 200 -
+2026-07-11 20:22:12,091 INFO controllers.user_controller usuario_criado
+2026-07-11 20:22:12,091 INFO werkzeug 127.0.0.1 - - [11/Jul/2026 20:22:12] "[35m[1mPOST /users HTTP/1.1[0m" 201 -
+2026-07-11 20:22:12,498 INFO werkzeug 127.0.0.1 - - [11/Jul/2026 20:22:12] "POST /login HTTP/1.1" 200 -
+2026-07-11 20:22:12,603 INFO werkzeug 127.0.0.1 - - [11/Jul/2026 20:22:12] "GET /tasks HTTP/1.1" 200 -
+2026-07-11 20:22:36,185 INFO werkzeug 127.0.0.1 - - [11/Jul/2026 20:22:36] "POST /login HTTP/1.1" 200 -
+2026-07-11 20:22:36,198 INFO werkzeug 127.0.0.1 - - [11/Jul/2026 20:22:36] "[31m[1mPUT /users/2 HTTP/1.1[0m" 401 -
+2026-07-11 20:22:36,204 INFO werkzeug 127.0.0.1 - - [11/Jul/2026 20:22:36] "[31m[1mPUT /users/2 HTTP/1.1[0m" 403 -
+2026-07-11 20:22:36,215 INFO werkzeug 127.0.0.1 - - [11/Jul/2026 20:22:36] "[31m[1mDELETE /users/2 HTTP/1.1[0m" 403 -
