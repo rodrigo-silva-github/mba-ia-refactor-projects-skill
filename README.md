@@ -87,7 +87,7 @@ projetos, conforme exigido) e é composta por `SKILL.md` (o prompt/orquestrador 
     ├── anti-patterns-catalog.md          # 14 anti-patterns + detecção de APIs deprecated — Fase 2
     ├── report-template.md                # formato exato do relatório de auditoria — Fase 2
     ├── mvc-guidelines.md                 # regras da arquitetura MVC alvo — Fase 3
-    └── refactoring-playbook.md           # 14 padrões de transformação com exemplos antes/depois — Fase 3
+    └── refactoring-playbook.md           # 13 padrões de transformação com exemplos antes/depois — Fase 3
 ```
 
 ### Decisões de design
